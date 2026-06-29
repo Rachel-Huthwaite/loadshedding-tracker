@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import * as Font from 'expo-font';
 
 // Screens
 import SplashScreen from './src/screens/SplashScreen';
@@ -10,8 +11,7 @@ import AreaScheduleScreen from './src/screens/AreaScheduleScreen';
 import InsightsScreen from './src/screens/InsightsScreen';
 
 // ============================================
-// SCREEN NAMES
-// Every screen in the app lives here
+// SCREEN & TAB TYPES
 // ============================================
 type ScreenName =
   | 'Splash'
@@ -21,6 +21,23 @@ type ScreenName =
   | 'Insights';
 
 type TabName = 'Home' | 'Insights' | 'Boredom' | 'Convenience' | 'News';
+
+// ============================================
+// FONTS
+// Loaded once here, available everywhere
+// ============================================
+const loadFonts = () =>
+  Font.loadAsync({
+    'Lexend-Thin': require('./assets/fonts/Lexend-Thin.ttf'),
+    'Lexend-ExtraLight': require('./assets/fonts/Lexend-ExtraLight.ttf'),
+    'Lexend-Light': require('./assets/fonts/Lexend-Light.ttf'),
+    'Lexend-Regular': require('./assets/fonts/Lexend-Regular.ttf'),
+    'Lexend-Medium': require('./assets/fonts/Lexend-Medium.ttf'),
+    'Lexend-SemiBold': require('./assets/fonts/Lexend-SemiBold.ttf'),
+    'Lexend-Bold': require('./assets/fonts/Lexend-Bold.ttf'),
+    'Lexend-ExtraBold': require('./assets/fonts/Lexend-ExtraBold.ttf'),
+    'Lexend-Black': require('./assets/fonts/Lexend-Black.ttf'),
+  });
 
 // ============================================
 // CUSTOM TAB BAR
@@ -63,52 +80,56 @@ function CustomTabBar({
 }
 
 // ============================================
-// APP — controls which screen is showing
+// APP
 // ============================================
 export default function App() {
+  const [fontsLoaded, setFontsLoaded] = useState(false);
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('Splash');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
 
-  // Navigate to any screen
+  // Load fonts when app starts
+  useEffect(() => {
+    loadFonts().then(() => setFontsLoaded(true));
+  }, []);
+
+  // Show nothing while fonts are loading
+  // This prevents a flash of unstyled text
+  if (!fontsLoaded) {
+    return <View style={styles.container} />;
+  }
+
   const navigate = (screen: ScreenName, params?: { locationId?: string }) => {
     if (params?.locationId) setSelectedLocationId(params.locationId);
     setCurrentScreen(screen);
   };
 
-  // Show tab bar only on main screens
-  const showTabBar = ['Home', 'Insights', 'Boredom', 'Convenience', 'News']
-    .includes(currentScreen) || activeTab !== 'Home';
+  const isInTabArea = currentScreen === 'Home' || currentScreen === 'Insights';
 
   const renderScreen = () => {
-    // If we're in the main tab area
-    if (
-      currentScreen === 'Home' ||
-      currentScreen === 'Insights' ||
-      activeTab !== 'Home'
-    ) {
+    if (isInTabArea) {
       switch (activeTab) {
-        case 'Insights':
-          return <InsightsScreen />;
-        default:
-          return <HomeScreen />;
+        case 'Insights': return <InsightsScreen />;
+        default: return <HomeScreen />;
       }
     }
 
-    // Full screen flows
     switch (currentScreen) {
       case 'Splash':
         return <SplashScreen onFinish={() => navigate('LocationEntry')} />;
       case 'LocationEntry':
         return <LocationEntryScreen onLocationSaved={() => navigate('Home')} />;
       case 'AreaSchedule':
-        return <AreaScheduleScreen locationId={selectedLocationId} onBack={() => navigate('Home')} />;
+        return (
+          <AreaScheduleScreen
+            locationId={selectedLocationId}
+            onBack={() => navigate('Home')}
+          />
+        );
       default:
         return <HomeScreen />;
     }
   };
-
-  const isInTabArea = currentScreen === 'Home' || currentScreen === 'Insights';
 
   return (
     <View style={styles.container}>
@@ -121,7 +142,6 @@ export default function App() {
           activeTab={activeTab}
           onTabPress={(tab) => {
             setActiveTab(tab);
-            setCurrentScreen('Home');
           }}
         />
       )}
