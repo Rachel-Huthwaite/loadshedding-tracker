@@ -3,6 +3,8 @@ import { StatusBar } from 'expo-status-bar';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import * as Font from 'expo-font';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 // Screens
 import SplashScreen from './src/screens/SplashScreen';
 import LocationEntryScreen from './src/screens/LocationEntryScreen';
@@ -88,9 +90,24 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabName>('Home');
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
 
-  // Load fonts when app starts
-  useEffect(() => {
-    loadFonts().then(() => setFontsLoaded(true));
+// Load fonts and check if user has launched before
+useEffect(() => {
+    const initApp = async () => {
+      try {
+        await loadFonts();
+        const hasLaunched = await AsyncStorage.getItem('hasLaunched');
+        if (hasLaunched === 'true') {
+          // Location already saved — splash will show,
+          // then navigate to Home (skipping LocationEntry)
+          setCurrentScreen('Splash');
+        }
+      } catch (e) {
+        console.log('Init error:', e);
+      } finally {
+        setFontsLoaded(true);
+      }
+    };
+    initApp();
   }, []);
 
   // Show nothing while fonts are loading
@@ -114,9 +131,20 @@ export default function App() {
       }
     }
 
-    switch (currentScreen) {
+switch (currentScreen) {
       case 'Splash':
-        return <SplashScreen onFinish={() => navigate('LocationEntry')} />;
+        return (
+          <SplashScreen
+            onFinish={async () => {
+              const hasLaunched = await AsyncStorage.getItem('hasLaunched');
+              if (hasLaunched === 'true') {
+                navigate('Home');
+              } else {
+                navigate('LocationEntry');
+              }
+            }}
+          />
+        );
       case 'LocationEntry':
         return <LocationEntryScreen onLocationSaved={() => navigate('Home')} />;
       case 'AreaSchedule':
