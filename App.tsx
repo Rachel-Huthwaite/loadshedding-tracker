@@ -126,8 +126,8 @@ useEffect(() => {
   const renderScreen = () => {
     if (isInTabArea) {
       switch (activeTab) {
-        case 'Insights': return <InsightsScreen />;
-        default: return <HomeScreen />;
+case 'Insights': return <InsightsScreen />;
+        default: return <HomeScreen onNavigateToSchedule={(id) => navigate('AreaSchedule', { locationId: id })} />;
       }
     }
 
